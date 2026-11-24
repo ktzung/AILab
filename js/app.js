@@ -554,12 +554,13 @@ while frontier:
     const scene = stepScene(lesson, step);
     const file = lesson.file || `${lesson.id}.py`;
     const life = lesson.life || { title: "Một tình huống đời thường", text: "Mỗi khái niệm đều có một phiên bản quen thuộc ngoài đời." };
-    const isoOn = !!(window.AIStage && window.AIStage.on());
+    const isoCan = !!(window.AIStage && window.AIStage.canRender(scene.kind));
+    const isoOn = !!(isoCan && window.AIStage && window.AIStage.on());
     return `<div class="stage-card" id="stageCard">
       <div class="stage-top">
         <div class="stage-title"><span class="live-dot"></span><span>CODE STAGE</span><span>${esc(file)} · ${codeLineCount(code)} dòng</span></div>
         <div class="stage-actions">
-          <button class="stage-icon-btn scene-mode-btn${isoOn ? " is-on" : ""}" type="button" data-action="toggle-scene3d" aria-pressed="${isoOn}" title="Bật / tắt sơ đồ isometric">${icon("cube")}<span>${isoOn ? "3D" : "2D"}</span></button>
+          <button class="stage-icon-btn scene-mode-btn${isoOn ? " is-on" : ""}" type="button" data-action="toggle-scene3d" aria-pressed="${isoOn}" ${isoCan ? "" : "disabled"} title="${isoCan ? "Bật / tắt sơ đồ isometric" : "Bước này chỉ có sơ đồ phẳng"}">${icon("cube")}<span>${isoOn ? "3D" : "2D"}</span></button>
           <button class="stage-icon-btn" type="button" data-action="copy-code" title="Copy code">${icon("copy")}<span>Copy</span></button>
           <button class="stage-icon-btn" type="button" data-action="fullscreen" title="Xem toàn màn hình">${icon("full")}<span>Toàn màn hình</span></button>
         </div>
@@ -714,6 +715,17 @@ while frontier:
       sceneWrap.innerHTML = R.renderScene(scene);
       const kind = $("#sceneKind");
       if (kind) kind.textContent = String(scene.kind || "vars").toUpperCase();
+    }
+    const modeBtn = $('[data-action="toggle-scene3d"]');
+    if (modeBtn) {
+      const can = !!(window.AIStage && window.AIStage.canRender(scene.kind));
+      const on = !!(can && window.AIStage.on());
+      modeBtn.disabled = !can;
+      modeBtn.classList.toggle("is-on", on);
+      modeBtn.setAttribute("aria-pressed", String(on));
+      modeBtn.title = can ? "Bật / tắt sơ đồ isometric" : "Bước này chỉ có sơ đồ phẳng";
+      const label = modeBtn.querySelector("span:not(.ui-icon)");
+      if (label) label.textContent = on ? "3D" : "2D";
     }
     const metrics = $(".stage-metrics");
     if (metrics) metrics.outerHTML = metricsHTML(lesson, step, scene);
@@ -1117,7 +1129,7 @@ while frontier:
     if (action === "copy-code") { copyCode(); return; }
     if (action === "fullscreen") { toggleFullscreen(); return; }
     if (action === "toggle-scene3d") {
-      if (!window.AIStage) return;
+      if (!window.AIStage || el.disabled) return;
       const next = window.AIStage.toggle();
       el.classList.toggle("is-on", next);
       el.setAttribute("aria-pressed", String(next));
